@@ -34,4 +34,7 @@ html/*
 !html/favicon.ico
 !html/404.html
 
+# Readme Files
+*.md
+
 
