@@ -10,8 +10,10 @@ import java.nio.file.Paths;
  */
 public class MainHTTPServerThread extends Thread {
 
-    private static final String SERVER_ROOT = ""; // Define by user
+    private static final String SERVER_ROOT = "html/"; // Define by user
     private final int port;
+    private final String host;
+    private final int max_connections;
     private ServerSocket server;
 
     /**
@@ -19,8 +21,10 @@ public class MainHTTPServerThread extends Thread {
      *
      * @param port The port number on which the server will listen.
      */
-    public MainHTTPServerThread(int port) {
+    public MainHTTPServerThread(int port, String host, int max_connections) {
         this.port = port;
+        this.host = host;
+        this.max_connections = max_connections;
     }
 
     /**
@@ -92,6 +96,7 @@ public class MainHTTPServerThread extends Thread {
                     }
                     String route = tokens[1];
                     System.out.println("Request received: " + request);
+                    System.out.println("Route received: " + route);
 
                     // Serve the requested file
                     byte[] content = readBinaryFile(SERVER_ROOT + route);
