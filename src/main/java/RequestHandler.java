@@ -10,53 +10,46 @@ import java.util.concurrent.atomic.AtomicReference;
 public class RequestHandler {
     private final String htmlFileName;
     private final String serverRoot;
-    private  String httpUrl ="";
+    private String httpUrl = "";
 
     public String getHttpUrl() {
         return httpUrl;
     }
 
 
-
-    public RequestHandler(String htmlFileName,String serverRoot){
+    public RequestHandler(String htmlFileName, String serverRoot) {
         this.htmlFileName = htmlFileName;
         this.serverRoot = serverRoot;
 
     }
 
     public void handleRequest() {
-        if (!htmlFileName.isBlank()) {
-            Path foundPath = htmlSearcher();
-            if (foundPath != null) {
-                httpUrl = foundPath.toString();
-            } else {
-                httpUrl = "html/404.html";
-            }
+        if (htmlFileName.endsWith(".html")) {
+            Path foundPath = htmlSearcher(serverRoot, htmlFileName);
+            httpUrl = foundPath.toString();
         } else {
-            List<Path> indexFilesPath = findAllFiles();
-            if (indexFilesPath.isEmpty()) {
+            String newPath = serverRoot + htmlFileName;
+            Path indexPath = htmlSearcher(newPath, "index.html");
+            if (indexPath == null) {
                 httpUrl = "html/404.html";
             } else {
-                for (Path p : indexFilesPath) {
-                    httpUrl += p.toString() + "\n";
-                }
+                httpUrl = indexPath.toString();
             }
         }
     }
-    public boolean checkHtmlFile(){
-        return htmlSearcher() != null && htmlFileName.endsWith(".html");
-    }
 
 
-
-    public Path htmlSearcher(){
+    public Path htmlSearcher(String serverRoot, String htmlFileName) {
         Path startDir = Paths.get(serverRoot);
         AtomicReference<Path> foundPath = new AtomicReference<>(null);
         try {
             Files.walkFileTree(startDir, new SimpleFileVisitor<Path>() {
                 @Override
                 public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) {
-                    if (file.getFileName().toString().equals(htmlFileName)) {
+                    System.out.println("Checking file: " + file);
+                    if (file.getFileName().toString().equals(Paths.get(htmlFileName).getFileName().toString())) {
+                        System.out.println("htmlFileName: " + htmlFileName);
+                        System.out.println("Found file: " + file);
                         foundPath.set(file);
                         return FileVisitResult.TERMINATE; // Stop searching
                     }
@@ -68,27 +61,8 @@ public class RequestHandler {
         }
         return foundPath.get(); // Return found file path or null
     }
-    public List<Path> findAllFiles(){
-            Path startDir = Paths.get(serverRoot);
-            List<Path> foundFiles = new ArrayList<>();
-
-            try {
-                Files.walkFileTree(startDir, new SimpleFileVisitor<Path>() {
-                    @Override
-                    public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) {
-                        if (file.getFileName().toString().equals("index.html")) {
-                            foundFiles.add(file);
-                        }
-                        return FileVisitResult.CONTINUE;
-                    }
-                });
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-            return foundFiles; // Return list of file paths
-        }
 
 
-    }
+}
 
 
