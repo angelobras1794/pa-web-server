@@ -10,7 +10,7 @@ import java.nio.file.Paths;
  */
 public class MainHTTPServerThread extends Thread {
 
-    private static final String SERVER_ROOT = "html/"; // Define by user
+    private static final String SERVER_ROOT = "server_root"; // Define by user
     private final int port;
     private final String host;
     private final int max_connections;
@@ -99,16 +99,25 @@ public class MainHTTPServerThread extends Thread {
                     System.out.println("Route received: " + route);
 
                     // Serve the requested file
-                    byte[] content = readBinaryFile(SERVER_ROOT + route);
+
+                    RequestHandler requestHandler = new RequestHandler(route, SERVER_ROOT);
+                    requestHandler.handleRequest();
+                    String httpUrl = requestHandler.getHttpUrl();
+
+
+                    byte[] content = readBinaryFile(httpUrl);
+
 
                     // Send HTTP response headers
                     clientOutput.write("HTTP/1.1 200 OK\r\n".getBytes());
                     clientOutput.write("Content-Type: text/html\r\n".getBytes());
-                    clientOutput.write("\r\n".getBytes());
+                    clientOutput.write("Content-Length: ".getBytes());
+                    clientOutput.write(String.valueOf(content.length).getBytes());
+                    clientOutput.write("\r\n\r\n".getBytes());
 
                     // Send response body
                     clientOutput.write(content);
-                    clientOutput.write("\r\n\r\n".getBytes());
+                    //clientOutput.write("\r\n\r\n".getBytes());
                     clientOutput.flush();
                 } catch (IOException e) {
                     System.err.println("Error handling client request.");
