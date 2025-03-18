@@ -10,7 +10,8 @@ import java.util.concurrent.atomic.AtomicReference;
 public class RequestHandler {
     private final String htmlFileName;
     private final String serverRoot;
-    private String httpUrl = "";
+    private String httpUrl;
+    private boolean error404;
 
     public String getHttpUrl() {
         return httpUrl;
@@ -24,16 +25,22 @@ public class RequestHandler {
     }
 
     public void handleRequest() {
+
         if (htmlFileName.endsWith(".html")) {
             Path foundPath = htmlSearcher(serverRoot, htmlFileName);
             httpUrl = foundPath.toString();
+            error404 = false;
+        } else if (htmlFileName.endsWith(".ico")) {
+           error404 = false;
         } else {
             String newPath = serverRoot + htmlFileName;
             Path indexPath = htmlSearcher(newPath, "index.html");
             if (indexPath == null) {
                 httpUrl = "html/404.html";
+                error404 = true;
             } else {
                 httpUrl = indexPath.toString();
+                error404 = false;
             }
         }
     }
@@ -61,6 +68,7 @@ public class RequestHandler {
         }
         return foundPath.get(); // Return found file path or null
     }
+    public boolean isError404() {return error404;}
 
 
 }
