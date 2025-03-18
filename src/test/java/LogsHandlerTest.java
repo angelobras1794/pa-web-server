@@ -18,10 +18,6 @@ public class LogsHandlerTest {
         Files.write(LOG_PATH, new byte[0], StandardOpenOption.TRUNCATE_EXISTING);
     }
 
-    @AfterEach
-    void tearDown() {
-        LogsHandler.shutdownLogger();
-    }
 
     @Test
     void testLogRequest() throws IOException, InterruptedException {
