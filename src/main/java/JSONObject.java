@@ -1,30 +1,44 @@
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
-public class JSONObject  {
+public class JSONObject {
 
-    private final Map<String, Object> ObjectLog = new HashMap<>();
+    private final List<Map<String, Object>> objectLogs = new ArrayList<>();
 
     public void put(String key, Object value) {
-        ObjectLog.put(key, value);
+        if (objectLogs.isEmpty()) {
+            objectLogs.add(new HashMap<>());
+        }
+        objectLogs.get(objectLogs.size() - 1).put(key, value);
+    }
+
+
+    public void newEntry() {
+        objectLogs.add(new HashMap<>());
     }
 
     @Override
     public String toString() {
-        StringBuilder json = new StringBuilder("{");
-        for (Map.Entry<String, Object> entry : ObjectLog.entrySet()) {
-            json.append("\"").append(entry.getKey()).append("\":");
+        StringBuilder json = new StringBuilder("{\n");
 
-            if (entry.getValue() instanceof String) {
-                json.append("\"").append(entry.getValue()).append("\"");
-            } else {
-                json.append(entry.getValue());
+        for (Map<String, Object> log : objectLogs) {
+            if (!log.isEmpty()) {
+                json.append("  ");
+                for (Map.Entry<String, Object> entry : log.entrySet()) {
+                    json.append("\"").append(entry.getKey()).append("\": ");
+                    if (entry.getValue() instanceof String) {
+                        json.append("\"").append(entry.getValue()).append("\"");
+                    } else {
+                        json.append(entry.getValue());
+                    }
+                    json.append(", ");
+                }
+                // Remove a última vírgula e espaço extra
+                json.delete(json.length() - 2, json.length());
+                json.append("\n");
             }
-            json.append(",");
-        }
-        // Remove a última vírgula se houver elementos
-        if (!ObjectLog.isEmpty()) {
-            json.deleteCharAt(json.length() - 1);
         }
         json.append("}");
         return json.toString();
