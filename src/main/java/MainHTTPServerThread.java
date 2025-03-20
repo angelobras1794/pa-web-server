@@ -83,59 +83,61 @@ public class MainHTTPServerThread extends Thread {
 
             while (true) {
                 Socket client = server.accept();
-                threadPool.submit(() -> handleClient(client));
+                threadPool.execute(new RequestThread(client, SERVER_ROOT, logsHandler));
             }
         } catch (IOException e) {
             System.err.println("Server error: Unable to start on port " + port);
             e.printStackTrace();
         }
     }
-    private void handleClient(Socket client) {
-        try (BufferedReader br = new BufferedReader(new InputStreamReader(client.getInputStream()));
-             OutputStream clientOutput = client.getOutputStream()) {
 
-            System.out.println("New client connected: " + client);
-
-            StringBuilder requestBuilder = new StringBuilder();
-            String line;
-            while (!(line = br.readLine()).isBlank()) {
-                requestBuilder.append(line).append("\r\n");
-            }
-
-            String request = requestBuilder.toString();
-            String[] tokens = request.split(" ");
-            if (tokens.length < 2) {
-                System.err.println("Invalid request received.");
-                return;
-            }
-            String route = tokens[1];
-            System.out.println("Request received: " + request);
-            System.out.println("Route received: " + route);
-
-            RequestHandler requestHandler = new RequestHandler(route, SERVER_ROOT);
-            requestHandler.handleRequest();
-            String httpUrl = requestHandler.getHttpUrl();
-            System.out.println(httpUrl);
-
-            byte[] content = readBinaryFile(httpUrl);
-
-            clientOutput.write("HTTP/1.1 200 OK\r\n".getBytes());
-            clientOutput.write("Content-Type: text/html\r\n".getBytes());
-            clientOutput.write("Content-Length: ".getBytes());
-            clientOutput.write(String.valueOf(content.length).getBytes());
-            clientOutput.write("\r\n\r\n".getBytes());
-
-            clientOutput.write(content);
-            clientOutput.flush();
-
-            if (requestHandler.isError404()) {
-                logsHandler.logRequest(tokens[0], route, client.getInetAddress().getHostAddress(), 404);
-            } else {
-                logsHandler.logRequest(tokens[0], route, client.getInetAddress().getHostAddress(), 200);
-            }
-        } catch (IOException e) {
-            System.err.println("Error handling client request.");
-            e.printStackTrace();
-        }
-    }
 }
+//    private void handleClient(Socket client) {
+//        try (BufferedReader br = new BufferedReader(new InputStreamReader(client.getInputStream()));
+//             OutputStream clientOutput = client.getOutputStream()) {
+//
+//            System.out.println("New client connected: " + client);
+//
+//            StringBuilder requestBuilder = new StringBuilder();
+//            String line;
+//            while (!(line = br.readLine()).isBlank()) {
+//                requestBuilder.append(line).append("\r\n");
+//            }
+//
+//            String request = requestBuilder.toString();
+//            String[] tokens = request.split(" ");
+//            if (tokens.length < 2) {
+//                System.err.println("Invalid request received.");
+//                return;
+//            }
+//            String route = tokens[1];
+//            System.out.println("Request received: " + request);
+//            System.out.println("Route received: " + route);
+//
+//            RequestHandler requestHandler = new RequestHandler(route, SERVER_ROOT);
+//            requestHandler.handleRequest();
+//            String httpUrl = requestHandler.getHttpUrl();
+//            System.out.println(httpUrl);
+//
+//            byte[] content = readBinaryFile(httpUrl);
+//
+//            clientOutput.write("HTTP/1.1 200 OK\r\n".getBytes());
+//            clientOutput.write("Content-Type: text/html\r\n".getBytes());
+//            clientOutput.write("Content-Length: ".getBytes());
+//            clientOutput.write(String.valueOf(content.length).getBytes());
+//            clientOutput.write("\r\n\r\n".getBytes());
+//
+//            clientOutput.write(content);
+//            clientOutput.flush();
+//
+//            if (requestHandler.isError404()) {
+//                logsHandler.logRequest(tokens[0], route, client.getInetAddress().getHostAddress(), 404);
+//            } else {
+//                logsHandler.logRequest(tokens[0], route, client.getInetAddress().getHostAddress(), 200);
+//            }
+//        } catch (IOException e) {
+//            System.err.println("Error handling client request.");
+//            e.printStackTrace();
+//        }
+//    }
+//}
