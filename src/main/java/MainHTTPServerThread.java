@@ -5,6 +5,8 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeUnit;
 
 /**
  * A simple HTTP server that listens on a specified port.
@@ -18,7 +20,7 @@ public class MainHTTPServerThread extends Thread {
     private final int max_connections;
     private ServerSocket server;
     private LogsHandler logsHandler;
-    private ExecutorService threadPool;
+    private ThreadPool threadPool;
 
     /**
      * Constructor to initialize the HTTP server thread with a specified port.
@@ -30,7 +32,7 @@ public class MainHTTPServerThread extends Thread {
         this.host = host;
         this.max_connections = max_connections;
         logsHandler = new LogsHandler(logFile);
-        threadPool = Executors.newFixedThreadPool(max_connections);
+        threadPool = new ThreadPool(max_connections,max_connections,1, TimeUnit.SECONDS,new LinkedBlockingQueue<>());
     }
 
     /**

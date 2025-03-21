@@ -8,12 +8,22 @@ public class ThreadPool extends ThreadPoolExecutor {
         super(corePoolSize, maximumPoolSize, keepAliveTime, unit, workQueue);
     }
 
-    protected void beforeExecute() {
+    @Override
+    protected void beforeExecute(Thread thread, Runnable r) {
+        super.beforeExecute(thread, r);
         System.out.println("Vai ser criada uma nova thread");
     }
 
-    protected void afterExecute() {
+    @Override
+    protected void afterExecute(Runnable r, Throwable t) {
+        super.afterExecute(r,t);
         System.out.println("Foi acabada a thread a thread");
+    }
+
+    @Override
+    protected void terminated() {
+        super.terminated();
+        System.out.println(" tHREAD POOL Terminada");
     }
 
 }
