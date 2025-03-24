@@ -1,36 +1,42 @@
 import java.io.*;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.List;
-import java.util.stream.Collectors;
-import java.nio.file.Files;
-import java.nio.file.Paths;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
 
 public class LogsHandler {
+    private static final String LOG_FILE = "server_root/logs/logs.json";
+    private static final int NUM_CONSUMERS = 2;
+    private static final BlockingQueue<String> logQueue = new LinkedBlockingQueue<>();
+    private static boolean closed = false;
 
-    private static String logFile = "";
-    private static boolean closed = false; // Para evitar reescrita de }
+    public LogsHandler() {
+        beforeExecute();
+        execute();
+        afterExecute();
+    }
 
-    public LogsHandler(String filename) {
-        logFile = filename;
-
-        // garantir que "}" seja escrita ao fechar o programa
-        Runtime.getRuntime().addShutdownHook(new Thread(LogsHandler::closeLogs));
-
-        // Garante que o arquivo começa corretamente
+    private void beforeExecute() {
         initializeFile();
+    }
+
+    private void execute() {
+        startConsumers();
+    }
+
+    private void afterExecute() {
+        Runtime.getRuntime().addShutdownHook(new Thread(this::closeLogs));
     }
 
     private void initializeFile() {
         try {
-            File file = new File(logFile);
+            File file = new File(LOG_FILE);
             if (!file.exists() || file.length() == 0) {
-                try (BufferedWriter writer = new BufferedWriter(new FileWriter(logFile))) {
-                    writer.write("{\n"); // Cria o arquivo com '{' apenas se estiver vazio
+                try (BufferedWriter writer = new BufferedWriter(new FileWriter(LOG_FILE))) {
+                    writer.write("{\n");
                     writer.flush();
                 }
             } else {
-                // Verifica se já tem uma "}" no final e remove para adicionar novos logs
                 removeClosingBracket();
             }
         } catch (IOException e) {
@@ -40,46 +46,52 @@ public class LogsHandler {
 
     public static void logRequest(String method, String route, String origin, int statusHttp) {
         String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
-        StringBuilder logEntry = new StringBuilder();
+        String logEntry = String.format(
+                "  \"route\": \"%s\", \"method\": \"%s\", \"origin\": \"%s\", \"HTTP response status\": %d, \"timestamp\": \"%s\",\n",
+                route, method, origin, statusHttp, timestamp
+        );
 
-        logEntry.append("\"route\": \"").append(route).append("\", ")
-                .append("\"method\": \"").append(method).append("\", ")
-                .append("\"origin\": \"").append(origin).append("\", ")
-                .append("\"HTTP response status\": ").append(statusHttp).append(", ")
-                .append("\"timestamp\": \"").append(timestamp).append("\"\n");
-
-        writeLogs(logEntry.toString());
+        new ProducerThread(logQueue, logEntry).start();
     }
 
-    private static void writeLogs(String logEntry) {
-        try (BufferedWriter writer = new BufferedWriter(new FileWriter(logFile, true))) {
-            writer.write(logEntry);
-            writer.flush();
-        } catch (IOException e) {
-            e.printStackTrace();
+    private void startConsumers() {
+        for (int i = 0; i < NUM_CONSUMERS; i++) {
+            new ConsumerThread(logQueue).start();
         }
     }
 
     private static void removeClosingBracket() {
-        try {
-            List<String> lines = Files.readAllLines(Paths.get(logFile));
-            if (!lines.isEmpty() && lines.get(lines.size() - 1).trim().equals("}")) {
-                lines.remove(lines.size() - 1); // Remove a última linha (a chave '}')
-                Files.write(Paths.get(logFile), lines);
+        try (RandomAccessFile raf = new RandomAccessFile(LOG_FILE, "rw")) {
+            long length = raf.length();
+
+            if (length < 3) {
+                return;
+            }
+
+            raf.seek(length - 3);
+            byte lastByte = raf.readByte();
+            if (lastByte == ',') {
+                raf.setLength(length - 3);
+            } else {
+                raf.setLength(length - 2);
             }
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
 
-    public static void closeLogs() {
+    public void closeLogs() {
         if (!closed) {
-            try (BufferedWriter writer = new BufferedWriter(new FileWriter(logFile, true))) {
-                writer.write("}");
-                writer.newLine();
+            try (BufferedWriter writer = new BufferedWriter(new FileWriter(LOG_FILE, true))) {
+                writer.write("  \n}\n");
                 writer.flush();
                 closed = true;
-            } catch (IOException e) {
+
+                for (int i = 0; i < NUM_CONSUMERS; i++) {
+                    logQueue.put("EOF");
+                }
+
+            } catch (IOException | InterruptedException e) {
                 e.printStackTrace();
             }
         }

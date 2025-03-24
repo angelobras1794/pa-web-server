@@ -29,7 +29,7 @@ public class MainHTTPServerThread extends Thread {
         this.port = port;
         this.host = host;
         this.max_connections = max_connections;
-        logsHandler = new LogsHandler(logFile);
+        logsHandler = new LogsHandler();
         threadPool = Executors.newFixedThreadPool(max_connections);
     }
 
