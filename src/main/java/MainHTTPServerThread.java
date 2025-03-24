@@ -31,8 +31,10 @@ public class MainHTTPServerThread extends Thread {
         this.port = port;
         this.host = host;
         this.max_connections = max_connections;
+
         logsHandler = new LogsHandler(logFile);
         threadPool = new ThreadPool(max_connections,max_connections,1, TimeUnit.SECONDS,new LinkedBlockingQueue<>());
+
     }
 
     /**
