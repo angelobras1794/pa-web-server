@@ -96,4 +96,7 @@ public class LogsHandler {
             }
         }
     }
+    public static BlockingQueue<String> getLogQueue() {
+        return logQueue;
+    }
 }

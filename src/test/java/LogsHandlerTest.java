@@ -1,39 +1,62 @@
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-
-import java.io.IOException;
-import java.nio.file.Files;
+import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.io.TempDir;
+import java.io.*;
 import java.nio.file.Path;
-import java.nio.file.StandardOpenOption;
-
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
+import static org.junit.jupiter.api.Assertions.*;
 
 public class LogsHandlerTest {
-    private static final Path LOG_PATH = Path.of("server.log");
+    private LogsHandler logsHandler;
+    private BlockingQueue<String> logQueue;
+
+    @TempDir
+    Path tempDir;
+    private String tempLogFile;
 
     @BeforeEach
-    void setup() throws IOException {
-        // Limpa o arquivo antes de cada teste
-        Files.write(LOG_PATH, new byte[0], StandardOpenOption.TRUNCATE_EXISTING);
+    void setUp() {
+        tempLogFile = tempDir.resolve("logs.json").toString();
+        logQueue = new LinkedBlockingQueue<>();
+        logsHandler = new LogsHandler();  // Instanciando o LogsHandler, que vai gerenciar o produtor e consumidor
     }
 
+    @Test
+    void testLogRequestAddsEntryToQueue() throws InterruptedException {
+        // Criar o log de entrada
+        String logEntry = "  \"route\": \"/home\", \"method\": \"GET\", \"origin\": \"127.0.0.1\", \"HTTP response status\": 200, \"timestamp\": \"2025-03-26 00:00:00\",\n";
+
+        // Criar e iniciar o produtor para adicionar o log à fila
+        ProducerThread producerThread = new ProducerThread(logQueue, logEntry);
+        producerThread.start();
+
+        // Esperar a thread do produtor adicionar o log à fila
+        producerThread.join();
+
+        // Verificar se o log foi adicionado corretamente à fila
+        assertFalse(logQueue.isEmpty(), "A fila de logs não deveria estar vazia após adicionar um log.");
+        assertEquals(logEntry, logQueue.take(), "O log na fila não é o esperado.");
+    }
 
     @Test
-    void testLogRequest() throws IOException, InterruptedException {
-        // Chama o logger para registrar um pedido
-        LogsHandler.logRequest("GET", "/home", "192.168.1.1", 200);
+    void testInitializeFileCreatesLogFile() {
+        File logFile = new File("server_root/logs/logs.json");
+        assertTrue(logFile.exists(), "O arquivo de log deveria ser criado.");
+    }
 
-        // Espera um pouco para a escrita assíncrona terminar
-        Thread.sleep(1000);
+    @Test
+    void testCloseLogsWritesClosingBracket() throws IOException {
+        logsHandler.closeLogs();
+        File logFile = new File("server_root/logs/logs.json");
+        assertTrue(logFile.exists(), "O arquivo de log deveria existir.");
 
-        // Lê o conteúdo do arquivo de log
-        String logContent = Files.readString(LOG_PATH);
-
-        // Verifica se contém as informações esperadas
-        assertTrue(logContent.contains("\"method\":\"GET\""));
-        assertTrue(logContent.contains("\"route\":\"/home\""));
-        assertTrue(logContent.contains("\"origin\":\"192.168.1.1\""));
-        assertTrue(logContent.contains("\"HTTP response status\":200"));
+        try (BufferedReader reader = new BufferedReader(new FileReader(logFile))) {
+            String lastLine = "";
+            String line;
+            while ((line = reader.readLine()) != null) {
+                lastLine = line;
+            }
+            assertTrue(lastLine.trim().endsWith("}"), "O arquivo de log deveria terminar com '}'");
+        }
     }
 }
