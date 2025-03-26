@@ -34,6 +34,7 @@ public class RequestHandler {
            error404 = false;
         } else {
             String newPath = serverRoot + htmlFileName;
+            System.out.println("Novo path" + newPath);
             Path indexPath = htmlSearcher(newPath, "index.html");
             if (indexPath == null) {
                 httpUrl = "html/404.html";
@@ -54,7 +55,7 @@ public class RequestHandler {
                 @Override
                 public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) {
                     System.out.println("Checking file: " + file);
-                    if (file.getFileName().toString().equals(Paths.get(htmlFileName).getFileName().toString())) {
+                    if (file.toString().equals(Paths.get(serverRoot + htmlFileName).toString())) {
                         System.out.println("htmlFileName: " + htmlFileName);
                         System.out.println("Found file: " + file);
                         foundPath.set(file);
