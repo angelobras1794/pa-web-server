@@ -1,36 +1,51 @@
 import org.junit.jupiter.api.*;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.LinkedBlockingQueue;
+import java.util.LinkedList;
+import java.util.Queue;
+import java.util.concurrent.Semaphore;
+import java.util.concurrent.locks.ReentrantLock;
+
 import static org.junit.jupiter.api.Assertions.*;
 
-public class ProducerThreadTest {
-    private BlockingQueue<String> logQueue;
+class ProducerThreadTest {
+    private Queue<String> logQueue;
+    private Semaphore semaphore;
+    private ReentrantLock lock;
     private ProducerThread producerThread;
 
     @BeforeEach
     void setUp() {
-        logQueue = new LinkedBlockingQueue<>();
+        logQueue = new LinkedList<>();
+        semaphore = new Semaphore(0); // Começa bloqueado
+        lock = new ReentrantLock();
     }
 
     @Test
-    void testProducerAddsLogEntryToQueue() throws InterruptedException {
+    void testProducerThread_AddsLogToQueue() throws InterruptedException {
         String logEntry = "Test log entry";
-        producerThread = new ProducerThread(logQueue, logEntry);
 
+        producerThread = new ProducerThread(logQueue, logEntry, semaphore, lock);
         producerThread.start();
         producerThread.join();
 
-        assertEquals(logEntry, logQueue.take());
+        assertEquals(1, logQueue.size(), "A fila deve conter um log.");
+        assertEquals(logEntry, logQueue.peek(), "O log na fila deve ser o esperado.");
     }
 
     @Test
-    void testProducerHandlesInterruptionsGracefully() {
-        String logEntry = "Interrupted log entry";
-        producerThread = new ProducerThread(logQueue, logEntry);
-
+    void testProducerThread_ReleasesSemaphore() throws InterruptedException {
+        producerThread = new ProducerThread(logQueue, "Log entry", semaphore, lock);
         producerThread.start();
-        producerThread.interrupt();
+        producerThread.join();
 
-        assertDoesNotThrow(() -> producerThread.join());
+        assertEquals(1, semaphore.availablePermits(), "O semáforo deve ser liberado após adicionar um log.");
+    }
+
+    @Test
+    void testProducerThread_UsesLockCorrectly() throws InterruptedException {
+        producerThread = new ProducerThread(logQueue, "Log entry", semaphore, lock);
+        producerThread.start();
+        producerThread.join();
+
+        assertFalse(lock.isLocked(), "O lock deve estar desbloqueado após a execução do producer.");
     }
 }

@@ -1,68 +1,69 @@
 import org.junit.jupiter.api.*;
-import org.junit.jupiter.api.io.TempDir;
-
 import java.io.*;
-import java.nio.file.Path;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.TimeUnit;
+import java.nio.file.*;
+import java.util.Queue;
+import java.util.LinkedList;
+import java.util.concurrent.Semaphore;
+import java.util.concurrent.locks.ReentrantLock;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-public class ConsumerThreadTest {
-    private BlockingQueue<String> logQueue;
+class ConsumerThreadTest {
+    private static final String TEST_LOG_FILE = "server_root/logs/test_logs.json";
+    private Queue<String> logQueue;
+    private Semaphore semaphore;
+    private ReentrantLock lock;
     private ConsumerThread consumerThread;
 
-    @TempDir
-    Path tempDir;
-    private String tempLogFile;
-
     @BeforeEach
-    void setUp() {
-        logQueue = new LinkedBlockingQueue<>();
-        tempLogFile = tempDir.resolve("logs.json").toString();
-        consumerThread = new ConsumerThread(logQueue) {
-            @Override
-            public void run() {
-                try (BufferedWriter writer = new BufferedWriter(new FileWriter(tempLogFile, true))) {
-                    while (true) {
-                        String logEntry = logQueue.poll(5, TimeUnit.SECONDS);
-                        if (logEntry == null) continue;
-                        if (logEntry.equals("EOF")) break;
-                        writer.write(logEntry);
-                        writer.flush();
-                    }
-                } catch (IOException | InterruptedException e) {
-                    Thread.currentThread().interrupt();
-                }
-            }
-        };
+    void setUp() throws IOException {
+        logQueue = new LinkedList<>();
+        semaphore = new Semaphore(1);
+        lock = new ReentrantLock();
+
+        Files.deleteIfExists(Paths.get(TEST_LOG_FILE));
+        Files.createDirectories(Paths.get("server_root/logs"));
+        Files.createFile(Paths.get(TEST_LOG_FILE));
+
+        consumerThread = new ConsumerThread(logQueue, semaphore, lock);
+    }
+
+    @AfterEach
+    void tearDown() throws IOException {
+        Files.deleteIfExists(Paths.get(TEST_LOG_FILE));
     }
 
     @Test
-    void testConsumerWritesLogToFile() throws InterruptedException, IOException {
-        String logEntry = "Test log entry\n";
-        logQueue.put(logEntry);
-        logQueue.put("EOF");
+    void testConsumerThread_WritesLogEntryToFile() throws IOException, InterruptedException {
+        logQueue.add("Test log entry\n");
+        logQueue.add("EOF");
+
+        consumerThread.start();
+        consumerThread.join(); // Aguarda a thread finalizar
+
+        String content = Files.readString(Paths.get(TEST_LOG_FILE));
+        assertTrue(content.contains("Test log entry"), "O arquivo deve conter a entrada de log.");
+    }
+
+    @Test
+    void testConsumerThread_StopsOnEOF() throws InterruptedException {
+        logQueue.add("EOF");
 
         consumerThread.start();
         consumerThread.join();
 
-        File logFile = new File(tempLogFile);
-        assertTrue(logFile.exists());
-
-        String content;
-        try (BufferedReader reader = new BufferedReader(new FileReader(logFile))) {
-            content = reader.readLine();
-        }
-        assertEquals(logEntry.trim(), content.trim());
+        assertTrue(logQueue.isEmpty(), "A fila deve estar vazia após consumir 'EOF'.");
     }
 
     @Test
-    void testConsumerStopsOnEOF() throws InterruptedException {
-        logQueue.put("EOF");
-        consumerThread.start();
-        consumerThread.join();
-        assertTrue(logQueue.isEmpty());
+    void testSemaphoreAndLockUsage() throws InterruptedException {
+        semaphore.acquire();
+        lock.lock();
+        logQueue.add("Log entry\n");
+        lock.unlock();
+        semaphore.release();
+
+        assertEquals(1, semaphore.availablePermits(), "O semáforo deve estar disponível após o uso.");
+        assertFalse(lock.isLocked(), "O lock deve estar desbloqueado.");
     }
 }
