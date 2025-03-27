@@ -28,10 +28,16 @@ public class RequestHandler {
 
         if (htmlFileName.endsWith(".html")) {
             Path foundPath = htmlSearcher(serverRoot, htmlFileName);
-            httpUrl = foundPath.toString();
-            error404 = false;
+            if (foundPath != null) {
+                httpUrl = foundPath.toString();
+                error404 = false;
+            } else {
+                httpUrl = "html/404.html";
+                error404 = true;
+            }
         } else if (htmlFileName.endsWith(".ico")) {
            error404 = false;
+
         } else {
             String newPath = serverRoot + htmlFileName;
             System.out.println("Novo path" + newPath);
@@ -55,6 +61,7 @@ public class RequestHandler {
                 @Override
                 public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) {
                     System.out.println("Checking file: " + file);
+                    System.out.println("htmlFileName: " + serverRoot + htmlFileName);
                     if (file.toString().equals(Paths.get(serverRoot + htmlFileName).toString())) {
                         System.out.println("htmlFileName: " + htmlFileName);
                         System.out.println("Found file: " + file);
