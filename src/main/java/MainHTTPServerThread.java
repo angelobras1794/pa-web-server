@@ -31,9 +31,8 @@ public class MainHTTPServerThread extends Thread {
      * @param port The port number on which the server will listen.
      * @param host The host address on which the server will listen.
      * @param max_connections The maximum number of concurrent connections.
-     * @param logFile The file path for logging requests.
      */
-    public MainHTTPServerThread(int port, String host, int max_connections, String logFile) {
+    public MainHTTPServerThread(int port, String host, int max_connections) {
         this.port = port;
         this.host = host;
         this.max_connections = max_connections;
