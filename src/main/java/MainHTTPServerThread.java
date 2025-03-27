@@ -4,7 +4,9 @@ import java.net.Socket;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * A simple HTTP server that listens on a specified port.
@@ -20,6 +22,8 @@ public class MainHTTPServerThread extends Thread {
     private LogsHandler logsHandler;
     private ThreadPool threadPool;
     private PageHandler pageHandler;
+    private Semaphore semaphore;
+    private ReentrantLock lock;
 
     /**
      * Constructor to initialize the HTTP server thread with a specified port, host, maximum connections, and log file.
@@ -33,8 +37,11 @@ public class MainHTTPServerThread extends Thread {
         this.port = port;
         this.host = host;
         this.max_connections = max_connections;
+        semaphore = new Semaphore(0);
+        lock = new ReentrantLock();
 
-        logsHandler = new LogsHandler(logFile);
+
+        logsHandler = new LogsHandler(semaphore,lock);
         threadPool = new ThreadPool(max_connections, max_connections, 1, TimeUnit.SECONDS, new LinkedBlockingQueue<>());
         pageHandler = new PageHandler();
     }

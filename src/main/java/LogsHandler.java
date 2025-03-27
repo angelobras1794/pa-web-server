@@ -1,16 +1,26 @@
 import java.io.*;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.LinkedList;
+import java.util.Queue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.Semaphore;
+import java.util.concurrent.locks.ReentrantLock;
 
 public class LogsHandler {
     private static final String LOG_FILE = "server_root/logs/logs.json";
-    private static final int NUM_CONSUMERS = 2;
-    private static final BlockingQueue<String> logQueue = new LinkedBlockingQueue<>();
+    private static final int NUM_CONSUMERS = 1;
+    private static final Queue<String> logQueue = new LinkedList<>();
     private static boolean closed = false;
+    private static Semaphore semaphore = null;
+    private static  ReentrantLock lock = null;
 
-    public LogsHandler() {
+    public LogsHandler(Semaphore semaphore, ReentrantLock lock) {
+        this.semaphore = semaphore;
+        this.lock = lock;
         beforeExecute();
         execute();
         afterExecute();
@@ -51,12 +61,12 @@ public class LogsHandler {
                 route, method, origin, statusHttp, timestamp
         );
 
-        new ProducerThread(logQueue, logEntry).start();
+        new ProducerThread(logQueue, logEntry,semaphore,lock).start();
     }
 
     private void startConsumers() {
         for (int i = 0; i < NUM_CONSUMERS; i++) {
-            new ConsumerThread(logQueue).start();
+            new ConsumerThread(logQueue,semaphore,lock).start();
         }
     }
 
@@ -88,15 +98,15 @@ public class LogsHandler {
                 closed = true;
 
                 for (int i = 0; i < NUM_CONSUMERS; i++) {
-                    logQueue.put("EOF");
+                    logQueue.add("EOF");
                 }
 
-            } catch (IOException | InterruptedException e) {
+            } catch (IOException e) {
                 e.printStackTrace();
             }
         }
     }
-    public static BlockingQueue<String> getLogQueue() {
+    public static Queue<String> getLogQueue() {
         return logQueue;
     }
 }
