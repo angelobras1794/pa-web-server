@@ -8,21 +8,18 @@ import java.util.concurrent.locks.ReentrantLock;
 import static org.junit.jupiter.api.Assertions.*;
 
 class LogsHandlerTest {
-    private static final String TEST_LOG_FILE = "server_root/logs/test_logs.json";
+    private static final String TEST_LOG_FILE = "src/test/resources/test_logs.json";
     private Semaphore semaphore;
     private ReentrantLock lock;
     private LogsHandler logsHandler;
 
     @BeforeEach
     void setUp() throws IOException {
-        semaphore = new Semaphore(1);
+        semaphore = new Semaphore(0);
         lock = new ReentrantLock();
         logsHandler = new LogsHandler(semaphore, lock);
 
-        // Garante que o arquivo de teste seja criado limpo antes de cada execução
-        Files.deleteIfExists(Paths.get(TEST_LOG_FILE));
-        Files.createDirectories(Paths.get("server_root/logs"));
-        Files.createFile(Paths.get(TEST_LOG_FILE));
+        
     }
 
     @AfterEach
