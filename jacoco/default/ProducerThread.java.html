@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ProducerThread.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">pa-web-server</a> &gt; <a href="index.source.html" class="el_package">default</a> &gt; <span class="el_source">ProducerThread.java</span></div><h1>ProducerThread.java</h1><pre class="source lang-java linenums">import java.util.Queue;
+import java.util.concurrent.Semaphore;
+import java.util.concurrent.locks.ReentrantLock;
+
+/**
+ * The ProducerThread class represents a producer thread that generates log entries
+ * and adds them to a shared log queue.
+ * This class is designed to be used in a multi-threaded environment where multiple
+ * producers can concurrently add log entries to the shared queue, ensuring thread safety
+ * using a semaphore and a lock.
+ */
+public class ProducerThread extends Thread {
+
+    // The queue where log entries will be added
+    private final Queue&lt;String&gt; logQueue;
+
+    // The log entry to be added to the queue
+    private final String logEntry;
+
+    // Semaphore to control access to the log queue
+    private final Semaphore semaphore;
+
+    // Lock to synchronize access to the log queue
+    private final ReentrantLock lock;
+
+    /**
+     * Constructs a ProducerThread that will add a log entry to the provided log queue.
+     * The producer will use the provided semaphore and lock to synchronize access to the queue.
+     *
+     * @param logQueue The queue to which the producer will add log entries.
+     * @param logEntry The log entry to be added to the queue.
+     * @param semaphore The semaphore used to control access to the log queue.
+     * @param lock The lock used to synchronize access to the log queue.
+     */
+<span class="fc" id="L35">    public ProducerThread(Queue&lt;String&gt; logQueue, String logEntry, Semaphore semaphore, ReentrantLock lock) {</span>
+<span class="fc" id="L36">        this.logQueue = logQueue;</span>
+<span class="fc" id="L37">        this.logEntry = logEntry;</span>
+<span class="fc" id="L38">        this.semaphore = semaphore;</span>
+<span class="fc" id="L39">        this.lock = new ReentrantLock();</span>
+<span class="fc" id="L40">    }</span>
+
+    /**
+     * The run method of the producer thread. This method adds a log entry to the shared log queue.
+     * It acquires the lock to ensure thread safety while adding the entry, and releases the semaphore
+     * to notify any waiting consumers that a new log entry has been added.
+     */
+    @Override
+    public void run() {
+        try {
+            // Lock access to the queue for thread safety
+<span class="fc" id="L51">            lock.lock();</span>
+
+            // Add the log entry to the queue
+<span class="fc" id="L54">            logQueue.add(logEntry);</span>
+
+            // Release the semaphore to allow a consumer to process the log entry
+<span class="fc" id="L57">            semaphore.release();</span>
+
+            // Unlock the queue access
+<span class="fc" id="L60">            lock.unlock();</span>
+<span class="nc" id="L61">        } catch (Exception e) {</span>
+            // Interrupt the thread if an exception occurs
+<span class="nc" id="L63">            Thread.currentThread().interrupt();</span>
+<span class="fc" id="L64">        }</span>
+<span class="fc" id="L65">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.7.202105040129</span></div></body></html>

@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>RequestHandler.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">pa-web-server</a> &gt; <a href="index.source.html" class="el_package">default</a> &gt; <span class="el_source">RequestHandler.java</span></div><h1>RequestHandler.java</h1><pre class="source lang-java linenums">import java.io.File;
+import java.io.IOException;
+import java.nio.file.*;
+import java.nio.file.attribute.BasicFileAttributes;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+import java.util.concurrent.atomic.AtomicReference;
+
+/**
+ * Handles HTTP requests for HTML files within a specified server root directory.
+ */
+public class RequestHandler {
+    private final String htmlFileName;
+    private final String serverRoot;
+    private String httpUrl;
+    private boolean error404;
+
+    /**
+     * Gets the resolved HTTP URL for the requested file.
+     *
+     * @return the HTTP URL as a String
+     */
+    public String getHttpUrl() {
+<span class="fc" id="L25">        return httpUrl;</span>
+    }
+
+    /**
+     * Constructs a RequestHandler with the specified HTML file name and server root.
+     *
+     * @param htmlFileName the name of the requested HTML file
+     * @param serverRoot   the root directory of the server
+     */
+<span class="fc" id="L34">    public RequestHandler(String htmlFileName, String serverRoot) {</span>
+<span class="fc" id="L35">        this.htmlFileName = htmlFileName;</span>
+<span class="fc" id="L36">        this.serverRoot = serverRoot;</span>
+<span class="fc" id="L37">    }</span>
+
+    /**
+     * Handles the request by searching for the requested HTML file within the server root.
+     * If the file is not found, it sets the URL to a 404 error page.
+     */
+    public void handleRequest() {
+<span class="fc bfc" id="L44" title="All 2 branches covered.">        if (htmlFileName.endsWith(&quot;.html&quot;)) {</span>
+<span class="fc" id="L45">            Path foundPath = htmlSearcher(serverRoot, htmlFileName);</span>
+<span class="fc bfc" id="L46" title="All 2 branches covered.">            if (foundPath != null) {</span>
+<span class="fc" id="L47">                httpUrl = foundPath.toString();</span>
+<span class="fc" id="L48">                error404 = false;</span>
+            } else {
+<span class="fc" id="L50">                httpUrl = &quot;html/404.html&quot;;</span>
+<span class="fc" id="L51">                error404 = true;</span>
+            }
+<span class="fc bfc" id="L53" title="All 2 branches covered.">        } else if (htmlFileName.endsWith(&quot;.ico&quot;)) {</span>
+<span class="fc" id="L54">            error404 = false;</span>
+        } else {
+<span class="fc" id="L56">            String newPath = serverRoot + htmlFileName;</span>
+<span class="fc" id="L57">            System.out.println(&quot;Novo path&quot; + newPath);</span>
+<span class="fc" id="L58">            Path indexPath = htmlSearcher(newPath, &quot;index.html&quot;);</span>
+<span class="fc bfc" id="L59" title="All 2 branches covered.">            if (indexPath == null) {</span>
+<span class="fc" id="L60">                httpUrl = &quot;html/404.html&quot;;</span>
+<span class="fc" id="L61">                error404 = true;</span>
+            } else {
+<span class="fc" id="L63">                httpUrl = indexPath.toString();</span>
+<span class="fc" id="L64">                error404 = false;</span>
+            }
+        }
+<span class="fc" id="L67">    }</span>
+
+    /**
+     * Searches for an HTML file within the given server root directory.
+     *
+     * @param serverRoot   the root directory where the search starts
+     * @param htmlFileName the name of the HTML file to search for
+     * @return the Path to the found file, or null if not found
+     */
+    public Path htmlSearcher(String serverRoot, String htmlFileName) {
+<span class="fc" id="L77">        Path startDir = Paths.get(serverRoot);</span>
+<span class="fc" id="L78">        AtomicReference&lt;Path&gt; foundPath = new AtomicReference&lt;&gt;(null);</span>
+        try {
+<span class="fc" id="L80">            Files.walkFileTree(startDir, new SimpleFileVisitor&lt;Path&gt;() {</span>
+                @Override
+                public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) {
+<span class="fc" id="L83">                    System.out.println(&quot;Checking file: &quot; + file);</span>
+<span class="fc" id="L84">                    System.out.println(&quot;htmlFileName: &quot; + serverRoot + htmlFileName);</span>
+<span class="fc bfc" id="L85" title="All 2 branches covered.">                    if (file.toString().equals(Paths.get(serverRoot + htmlFileName).toString())) {</span>
+<span class="fc" id="L86">                        System.out.println(&quot;htmlFileName: &quot; + htmlFileName);</span>
+<span class="fc" id="L87">                        System.out.println(&quot;Found file: &quot; + file);</span>
+<span class="fc" id="L88">                        foundPath.set(file);</span>
+<span class="fc" id="L89">                        return FileVisitResult.TERMINATE; // Stop searching</span>
+                    }
+<span class="fc" id="L91">                    return FileVisitResult.CONTINUE;</span>
+                }
+            });
+<span class="nc" id="L94">        } catch (IOException e) {</span>
+<span class="nc" id="L95">            e.printStackTrace();</span>
+<span class="fc" id="L96">        }</span>
+<span class="fc" id="L97">        return foundPath.get(); // Return found file path or null</span>
+    }
+
+    /**
+     * Checks if the request resulted in a 404 error.
+     *
+     * @return true if the requested file was not found, false otherwise
+     */
+    public boolean isError404() {
+<span class="fc" id="L106">        return error404;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.7.202105040129</span></div></body></html>

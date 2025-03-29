@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>MainHTTPServerThread.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">pa-web-server</a> &gt; <a href="index.source.html" class="el_package">default</a> &gt; <span class="el_source">MainHTTPServerThread.java</span></div><h1>MainHTTPServerThread.java</h1><pre class="source lang-java linenums">import java.io.*;
+import java.net.ServerSocket;
+import java.net.Socket;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.Semaphore;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.ReentrantLock;
+
+/**
+ * A simple HTTP server that listens on a specified port.
+ * It serves files from a predefined server root directory.
+ */
+public class MainHTTPServerThread extends Thread {
+
+    private static final String SERVER_ROOT = &quot;server_root&quot;; // Define by user
+    private final int port;
+    private final String host;
+    private final int max_connections;
+    private ServerSocket server;
+    private LogsHandler logsHandler;
+    private ThreadPool threadPool;
+    private PageHandler pageHandler;
+    private Semaphore semaphore;
+    private ReentrantLock lock;
+
+    /**
+     * Constructor to initialize the HTTP server thread with a specified port, host, maximum connections, and log file.
+     *
+     * @param port The port number on which the server will listen.
+     * @param host The host address on which the server will listen.
+     * @param max_connections The maximum number of concurrent connections.
+     */
+<span class="fc" id="L35">    public MainHTTPServerThread(int port, String host, int max_connections) {</span>
+<span class="fc" id="L36">        this.port = port;</span>
+<span class="fc" id="L37">        this.host = host;</span>
+<span class="fc" id="L38">        this.max_connections = max_connections;</span>
+<span class="fc" id="L39">        semaphore = new Semaphore(0);</span>
+<span class="fc" id="L40">        lock = new ReentrantLock();</span>
+
+
+<span class="fc" id="L43">        logsHandler = new LogsHandler(semaphore,lock);</span>
+<span class="fc" id="L44">        threadPool = new ThreadPool(max_connections, max_connections, 1, TimeUnit.SECONDS, new LinkedBlockingQueue&lt;&gt;());</span>
+<span class="fc" id="L45">        pageHandler = new PageHandler();</span>
+<span class="fc" id="L46">    }</span>
+
+
+    /**
+     * Starts the HTTP server and listens for incoming client requests.
+     * Processes HTTP GET requests and serves files from the defined server root directory.
+     */
+    @Override
+    public void run() {
+        try {
+<span class="fc" id="L56">            server = new ServerSocket(port);</span>
+<span class="fc" id="L57">            System.out.println(&quot;Server started on port: &quot; + port);</span>
+<span class="fc" id="L58">            System.out.println(&quot;Working Directory: &quot; + System.getProperty(&quot;user.dir&quot;));</span>
+
+            while (true) {
+<span class="fc" id="L61">                Socket client = server.accept();</span>
+<span class="fc" id="L62">                threadPool.execute(new RequestThread(client, SERVER_ROOT, logsHandler, pageHandler));</span>
+<span class="fc" id="L63">            }</span>
+<span class="fc" id="L64">        } catch (IOException e) {</span>
+<span class="fc" id="L65">            System.err.println(&quot;Server error: Unable to start on port &quot; + port);</span>
+<span class="fc" id="L66">            e.printStackTrace();</span>
+        }
+<span class="fc" id="L68">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.7.202105040129</span></div></body></html>

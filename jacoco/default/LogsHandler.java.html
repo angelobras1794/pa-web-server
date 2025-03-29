@@ -1,0 +1,174 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>LogsHandler.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">pa-web-server</a> &gt; <a href="index.source.html" class="el_package">default</a> &gt; <span class="el_source">LogsHandler.java</span></div><h1>LogsHandler.java</h1><pre class="source lang-java linenums">import java.io.*;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.LinkedList;
+import java.util.Queue;
+import java.util.concurrent.Semaphore;
+import java.util.concurrent.locks.ReentrantLock;
+
+/**
+ * The LogsHandler class manages logging functionality by writing log entries to a JSON file.
+ * It handles the initialization of the log file, log entry writing, and managing multiple consumer threads to process log entries.
+ * This class ensures that logs are written in a thread-safe manner using a semaphore and a reentrant lock.
+ */
+public class LogsHandler {
+
+    // Path to the log file
+    private static final String LOG_FILE = &quot;server_root/logs/logs.json&quot;;
+
+    // Number of consumer threads
+    private static final int NUM_CONSUMERS = 1;
+
+    // Queue to store log entries
+<span class="fc" id="L23">    private static final Queue&lt;String&gt; logQueue = new LinkedList&lt;&gt;();</span>
+
+    // Flag to check if the log has already been closed
+<span class="fc" id="L26">    private static boolean closed = false;</span>
+
+    // Semaphore to control access to the log
+<span class="fc" id="L29">    private static Semaphore semaphore = null;</span>
+
+    // Lock to synchronize access to the log queue
+<span class="fc" id="L32">    private static ReentrantLock lock = null;</span>
+
+    /**
+     * Constructor for the LogsHandler class.
+     * Initializes the semaphore and lock, and starts the logging process by calling the appropriate methods.
+     *
+     * @param semaphore The semaphore used to control access to the log.
+     * @param lock The lock used to synchronize access to the log queue.
+     */
+<span class="fc" id="L41">    public LogsHandler(Semaphore semaphore, ReentrantLock lock) {</span>
+<span class="fc" id="L42">        this.semaphore = semaphore;</span>
+<span class="fc" id="L43">        this.lock = lock;</span>
+<span class="fc" id="L44">        beforeExecute();</span>
+<span class="fc" id="L45">        execute();</span>
+<span class="fc" id="L46">        afterExecute();</span>
+<span class="fc" id="L47">    }</span>
+
+    /**
+     * Performs initialization tasks before starting log processing.
+     * Specifically, it initializes the log file.
+     */
+    private void beforeExecute() {
+<span class="fc" id="L54">        initializeFile();</span>
+<span class="fc" id="L55">    }</span>
+
+    /**
+     * Starts the consumer threads that will process the log entries from the queue.
+     */
+    private void execute() {
+<span class="fc" id="L61">        startConsumers();</span>
+<span class="fc" id="L62">    }</span>
+
+    /**
+     * Registers a shutdown hook to close the logs when the application terminates.
+     */
+    private void afterExecute() {
+<span class="fc" id="L68">        Runtime.getRuntime().addShutdownHook(new Thread(this::closeLogs));</span>
+<span class="fc" id="L69">    }</span>
+
+    /**
+     * Initializes the log file by creating it if it doesn't exist or cleaning up the closing bracket if necessary.
+     */
+    private void initializeFile() {
+        try {
+<span class="fc" id="L76">            File file = new File(LOG_FILE);</span>
+<span class="pc bpc" id="L77" title="2 of 4 branches missed.">            if (!file.exists() || file.length() == 0) {</span>
+<span class="nc" id="L78">                try (BufferedWriter writer = new BufferedWriter(new FileWriter(LOG_FILE))) {</span>
+<span class="nc" id="L79">                    writer.write(&quot;{\n&quot;);</span>
+<span class="nc" id="L80">                    writer.flush();</span>
+                }
+            } else {
+<span class="fc" id="L83">                removeClosingBracket();</span>
+            }
+<span class="nc" id="L85">        } catch (IOException e) {</span>
+<span class="nc" id="L86">            e.printStackTrace();</span>
+<span class="fc" id="L87">        }</span>
+<span class="fc" id="L88">    }</span>
+
+    /**
+     * Logs an HTTP request by creating a log entry and adding it to the queue.
+     * This method will be called to log information such as the HTTP method, route, origin, status, and timestamp.
+     * A new producer thread is created to handle the addition of the log entry to the queue.
+     *
+     * @param method The HTTP method (e.g., GET, POST).
+     * @param route The route of the HTTP request.
+     * @param origin The origin of the request.
+     * @param statusHttp The HTTP status code of the response.
+     */
+    public static void logRequest(String method, String route, String origin, int statusHttp) {
+<span class="fc" id="L101">        String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern(&quot;yyyy-MM-dd HH:mm:ss&quot;));</span>
+<span class="fc" id="L102">        String logEntry = String.format(</span>
+                &quot;  \&quot;route\&quot;: \&quot;%s\&quot;, \&quot;method\&quot;: \&quot;%s\&quot;, \&quot;origin\&quot;: \&quot;%s\&quot;, \&quot;HTTP response status\&quot;: %d, \&quot;timestamp\&quot;: \&quot;%s\&quot;,\n&quot;,
+<span class="fc" id="L104">                route, method, origin, statusHttp, timestamp</span>
+        );
+
+<span class="fc" id="L107">        new ProducerThread(logQueue, logEntry, semaphore, lock).start();</span>
+<span class="fc" id="L108">    }</span>
+
+    /**
+     * Starts the consumer threads that will process log entries from the queue.
+     * The number of consumer threads is controlled by the NUM_CONSUMERS constant.
+     */
+    private void startConsumers() {
+<span class="fc bfc" id="L115" title="All 2 branches covered.">        for (int i = 0; i &lt; NUM_CONSUMERS; i++) {</span>
+<span class="fc" id="L116">            new ConsumerThread(logQueue, semaphore, lock).start();</span>
+        }
+<span class="fc" id="L118">    }</span>
+
+    /**
+     * Removes the last closing bracket from the log file to maintain proper JSON formatting.
+     * This method is called if the log file already exists to ensure it is not malformed.
+     */
+    private static void removeClosingBracket() {
+<span class="fc" id="L125">        try (RandomAccessFile raf = new RandomAccessFile(LOG_FILE, &quot;rw&quot;)) {</span>
+<span class="fc" id="L126">            long length = raf.length();</span>
+
+<span class="pc bpc" id="L128" title="1 of 2 branches missed.">            if (length &lt; 3) {</span>
+<span class="nc" id="L129">                return;</span>
+            }
+
+<span class="fc" id="L132">            raf.seek(length - 3);</span>
+<span class="fc" id="L133">            byte lastByte = raf.readByte();</span>
+<span class="pc bpc" id="L134" title="1 of 2 branches missed.">            if (lastByte == ',') {</span>
+<span class="nc" id="L135">                raf.setLength(length - 3);</span>
+            } else {
+<span class="fc" id="L137">                raf.setLength(length - 2);</span>
+            }
+<span class="nc" id="L139">        } catch (IOException e) {</span>
+<span class="nc" id="L140">            e.printStackTrace();</span>
+<span class="fc" id="L141">        }</span>
+<span class="fc" id="L142">    }</span>
+
+    /**
+     * Closes the log file by writing a closing bracket to indicate the end of the JSON log entries.
+     * It also notifies the consumers to stop processing by adding an &quot;EOF&quot; entry to the queue.
+     */
+    public void closeLogs() {
+<span class="fc bfc" id="L149" title="All 2 branches covered.">        if (!closed) {</span>
+<span class="fc" id="L150">            try (BufferedWriter writer = new BufferedWriter(new FileWriter(LOG_FILE, true))) {</span>
+<span class="fc" id="L151">                writer.write(&quot;  \n}\n&quot;);</span>
+<span class="fc" id="L152">                writer.flush();</span>
+<span class="fc" id="L153">                closed = true;</span>
+
+<span class="fc bfc" id="L155" title="All 2 branches covered.">                for (int i = 0; i &lt; NUM_CONSUMERS; i++) {</span>
+<span class="fc" id="L156">                    logQueue.add(&quot;EOF&quot;);</span>
+                }
+
+<span class="nc" id="L159">            } catch (IOException e) {</span>
+<span class="nc" id="L160">                e.printStackTrace();</span>
+<span class="fc" id="L161">            }</span>
+        }
+<span class="fc" id="L163">    }</span>
+
+    /**
+     * Returns the log queue. This is useful for testing and inspecting the contents of the queue.
+     *
+     * @return The log queue.
+     */
+    public static Queue&lt;String&gt; getLogQueue() {
+<span class="fc" id="L171">        return logQueue;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.7.202105040129</span></div></body></html>

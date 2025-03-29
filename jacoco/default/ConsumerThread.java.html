@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ConsumerThread.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">pa-web-server</a> &gt; <a href="index.source.html" class="el_package">default</a> &gt; <span class="el_source">ConsumerThread.java</span></div><h1>ConsumerThread.java</h1><pre class="source lang-java linenums">import java.io.BufferedWriter;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.util.Queue;
+import java.util.concurrent.Semaphore;
+import java.util.concurrent.locks.ReentrantLock;
+
+/**
+ * The ConsumerThread class represents a consumer thread that processes log entries from a queue
+ * and writes them to a log file.
+ * This class is designed to be used in a multi-threaded environment where multiple consumers can
+ * consume log entries concurrently from a shared queue, ensuring thread safety using a semaphore and a lock.
+ */
+public class ConsumerThread extends Thread {
+
+    // The queue from which log entries are consumed
+    private final Queue&lt;String&gt; logQueue;
+
+    // Path to the log file where the logs will be written
+    private static final String LOG_FILE = &quot;server_root/logs/logs.json&quot;;
+
+    // Semaphore to control access to the log queue
+    private final Semaphore semaphore;
+
+    // Lock to synchronize access to the log queue
+    private final ReentrantLock lock;
+
+    /**
+     * Constructs a ConsumerThread that will process log entries from the provided log queue.
+     * The consumer will use the provided semaphore and lock to synchronize access to the queue.
+     *
+     * @param logQueue The queue from which the consumer will consume log entries.
+     * @param semaphore The semaphore used to control access to the log queue.
+     * @param lock The lock used to synchronize access to the log queue.
+     */
+<span class="fc" id="L36">    public ConsumerThread(Queue&lt;String&gt; logQueue, Semaphore semaphore, ReentrantLock lock) {</span>
+<span class="fc" id="L37">        this.logQueue = logQueue;</span>
+<span class="fc" id="L38">        this.semaphore = semaphore;</span>
+<span class="fc" id="L39">        this.lock = lock;</span>
+<span class="fc" id="L40">    }</span>
+
+    /**
+     * The run method of the consumer thread. This method continuously consumes log entries from the queue
+     * and writes them to the log file. It will stop when it encounters an &quot;EOF&quot; log entry, which is used as a signal to terminate.
+     * The thread acquires the semaphore to ensure thread-safe access to the queue and locks access to the queue
+     * using a ReentrantLock to ensure that only one thread can access the queue at a time.
+     */
+    @Override
+    public void run() {
+<span class="fc" id="L50">        try (BufferedWriter writer = new BufferedWriter(new FileWriter(LOG_FILE, true))) {</span>
+            // Infinite loop to keep consuming logs until the &quot;EOF&quot; entry is encountered
+            while (true) {
+                // Acquire the semaphore to safely access the log queue
+<span class="fc" id="L54">                semaphore.acquireUninterruptibly();</span>
+
+                // Lock access to the queue for thread safety
+<span class="fc" id="L57">                lock.lock();</span>
+
+                // Poll the log queue for the next log entry
+<span class="fc" id="L60">                String logEntry = logQueue.poll();</span>
+
+                // Check if the log entry is &quot;EOF&quot;, which indicates the end of the processing
+<span class="pc bpc" id="L63" title="1 of 4 branches missed.">                if (logEntry != null &amp;&amp; logEntry.equals(&quot;EOF&quot;)) {</span>
+<span class="fc" id="L64">                    break; // Exit the loop if EOF is encountered</span>
+                }
+
+                // Unlock the queue access
+<span class="fc" id="L68">                lock.unlock();</span>
+
+                // Write the log entry to the log file
+<span class="pc bpc" id="L71" title="1 of 2 branches missed.">                if (logEntry != null) {</span>
+<span class="fc" id="L72">                    writer.write(logEntry);</span>
+<span class="fc" id="L73">                    writer.flush();</span>
+                }
+<span class="fc" id="L75">            }</span>
+<span class="nc" id="L76">        } catch (IOException e) {</span>
+            // Interrupt the thread if an IOException occurs
+<span class="nc" id="L78">            Thread.currentThread().interrupt();</span>
+<span class="fc" id="L79">        }</span>
+<span class="fc" id="L80">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.7.202105040129</span></div></body></html>

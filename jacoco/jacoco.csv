@@ -1,0 +1,13 @@
+GROUP,PACKAGE,CLASS,INSTRUCTION_MISSED,INSTRUCTION_COVERED,BRANCH_MISSED,BRANCH_COVERED,LINE_MISSED,LINE_COVERED,COMPLEXITY_MISSED,COMPLEXITY_COVERED,METHOD_MISSED,METHOD_COVERED
+pa-web-server,default,ConsumerThread,3,52,2,4,2,18,2,3,0,2
+pa-web-server,default,ProducerThread,3,34,0,0,2,12,0,2,0,2
+pa-web-server,default,JSONObject,0,130,1,9,0,24,1,8,0,4
+pa-web-server,default,PageHandler,0,56,0,4,0,15,0,7,0,5
+pa-web-server,default,RequestHandler,3,110,0,8,2,29,0,9,0,5
+pa-web-server,default,ConfigReader,0,42,0,2,0,10,0,4,0,3
+pa-web-server,default,RequestHandler.new SimpleFileVisitor() {...},0,58,0,2,0,9,0,3,0,2
+pa-web-server,default,RequestThread,160,131,16,6,35,33,11,5,1,4
+pa-web-server,default,ThreadPool,0,30,0,0,0,11,0,4,0,4
+pa-web-server,default,LogsHandler,32,177,4,10,11,49,4,14,0,11
+pa-web-server,default,MainHTTPServerThread,0,92,0,0,0,20,0,2,0,2
+pa-web-server,default,Main,36,0,0,0,12,0,2,0,2,0
