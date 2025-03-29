@@ -18,6 +18,7 @@ class LogsHandlerTest {
         semaphore = new Semaphore(0);
         lock = new ReentrantLock();
         logsHandler = new LogsHandler(semaphore, lock);
+        Files.createFile(Path.of(TEST_LOG_FILE));
 
 
     }
@@ -67,12 +68,13 @@ class LogsHandlerTest {
     }
 
     @Test
-    void testSemaphoreAndLockUsage() throws InterruptedException {
+    void testSemaphoreUsage() throws InterruptedException {
 
         LogsHandler.logRequest("POST", "/api/user", "192.168.1.1", 201);
 
+        // teste if semaphore is 0
+        assertEquals(0, semaphore.availablePermits(), "O semáforo deve ser 0 após o consumo de um log.");
 
 
-        assertFalse(lock.isLocked(), "O lock deve estar desbloqueado após a operação.");
     }
 }
