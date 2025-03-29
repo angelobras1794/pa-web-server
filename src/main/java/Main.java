@@ -15,7 +15,7 @@ public class Main {
         int port = configReader.getIntProperty("server.port");
         String host = configReader.getProperty("server.host");
         int max_connections = configReader.getIntProperty("server.max-conections");
-        MainHTTPServerThread s = new MainHTTPServerThread(port, host, max_connections, "server_root/logs/logs.json");
+        MainHTTPServerThread s = new MainHTTPServerThread(port, host, max_connections);
         s.start();
         try {
             Thread.sleep(2000);
@@ -25,14 +25,14 @@ public class Main {
 
 
 
-        // Create a thread pool to simulate multiple clients
+
 //        ExecutorService clientPool = Executors.newFixedThreadPool(10);
 //
 //        // Send 10 requests concurrently
 //        for (int i = 0; i < 60; i++) {
 //            clientPool.submit(() -> {
 //                try {
-//                    URL url = new URL("http://localhost:8080/user/caalhos/ola.html");
+//                    URL url = new URL("http://localhost:8080");
 //                    HttpURLConnection connection = (HttpURLConnection) url.openConnection();
 //                    connection.setRequestMethod("GET");
 //
@@ -56,7 +56,7 @@ public class Main {
 //
 //
 //        }
-//
-//    }
+
     }
-}
+    }
+
