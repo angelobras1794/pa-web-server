@@ -51,13 +51,14 @@ jobs:
       run: mvn javadoc:javadoc
 
     - name: Upload code coverage report
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: code-coverage-report
         path: target/site/jacoco
 
     - name: Upload Javadoc
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: javadoc
         path: target/site/apidocs
+      
