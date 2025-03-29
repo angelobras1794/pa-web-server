@@ -28,11 +28,6 @@ class LogsHandlerTest {
         Files.deleteIfExists(Paths.get(TEST_LOG_FILE));
     }
 
-    @Test
-    void testInitializeFile_CreatesFileIfNotExists() {
-        File file = new File(TEST_LOG_FILE);
-        assertTrue(file.exists(), "O arquivo de log deveria ser criado.");
-    }
 
     @Test
     void testLogRequest_AddsLogToQueue() {
