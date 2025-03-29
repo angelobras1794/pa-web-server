@@ -75,7 +75,7 @@ public class RequestThread implements Runnable {
 
             byte[] content = readBinaryFile(httpUrl);
             sendResponse(content, clientOutput);
-            Thread.sleep(5000);
+            //Thread.sleep(5000);
             pageHandler.unlockAccessPage(httpUrl);
 
             if (requestHandler.isError404()) {
@@ -88,8 +88,7 @@ public class RequestThread implements Runnable {
         } catch (IOException e) {
             System.err.println("Error handling client request.");
             e.printStackTrace();
-        } catch (InterruptedException e) {
-            throw new RuntimeException(e);
+
         }
     }
 
