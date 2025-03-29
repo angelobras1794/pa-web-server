@@ -4,22 +4,42 @@ import static org.junit.jupiter.api.Assertions.*;
 public class JSONObjectTest {
 
     @Test
-    void testJSONObjectToString() {
+    void testPut_AddsKeyValuePair() {
         JSONObject json = new JSONObject();
-        json.put("timestamp", "2025-03-17 14:30:25");
-        json.put("method", "GET");
-        json.put("route", "/home");
-        json.put("origin", "192.168.1.1");
-        json.put("HTTP response status", 200);
+        json.put("key1", "value1");
+        json.put("key2", 123);
 
-        String expectedJson = "{\"route\":\"/home\",\"method\":\"GET\",\"origin\":\"192.168.1.1\",\"HTTP response status\":200,\"timestamp\":\"2025-03-17 14:30:25\"}";
-
+        String expectedJson = "{\n  \"key1\": \"value1\", \"key2\": 123\n}";
         assertEquals(expectedJson, json.toString());
     }
 
     @Test
-    void testJSONObjectEmpty() {
+    void testNewEntry_CreatesNewJSONObjectEntry() {
         JSONObject json = new JSONObject();
-        assertEquals("{}", json.toString());
+        json.put("key1", "value1");
+        json.newEntry();
+        json.put("key2", 123);
+
+        String expectedJson = "{\n  \"key1\": \"value1\"\n  \"key2\": 123\n}";
+        assertEquals(expectedJson, json.toString());
+    }
+
+    @Test
+    void testToString_EmptyJSONObject() {
+        JSONObject json = new JSONObject();
+        assertEquals("{\n}", json.toString());
+    }
+
+    @Test
+    void testToString_MultipleEntries() {
+        JSONObject json = new JSONObject();
+        json.put("key1", "value1");
+        json.newEntry();
+        json.put("key2", 123);
+        json.newEntry();
+        json.put("key3", true);
+
+        String expectedJson = "{\n  \"key1\": \"value1\"\n  \"key2\": 123\n  \"key3\": true\n}";
+        assertEquals(expectedJson, json.toString());
     }
 }
