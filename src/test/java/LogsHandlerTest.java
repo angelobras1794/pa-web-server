@@ -18,8 +18,9 @@ class LogsHandlerTest {
         semaphore = new Semaphore(0);
         lock = new ReentrantLock();
         logsHandler = new LogsHandler(semaphore, lock);
-        Files.createFile(Path.of(TEST_LOG_FILE));
-
+        if (!Files.exists(Path.of(TEST_LOG_FILE))) {
+            Files.createFile(Path.of(TEST_LOG_FILE));
+        }
 
     }
 
