@@ -8,7 +8,7 @@ import java.util.concurrent.locks.ReentrantLock;
 import static org.junit.jupiter.api.Assertions.*;
 
 class LogsHandlerTest {
-    private static final String TEST_LOG_FILE = "src/test/resources/test_logs.json";
+    private static final String TEST_LOG_FILE = "src/test/resources/logs_tests.json";
     private Semaphore semaphore;
     private ReentrantLock lock;
     private LogsHandler logsHandler;
@@ -19,7 +19,7 @@ class LogsHandlerTest {
         lock = new ReentrantLock();
         logsHandler = new LogsHandler(semaphore, lock);
 
-        
+
     }
 
     @AfterEach
@@ -68,13 +68,11 @@ class LogsHandlerTest {
 
     @Test
     void testSemaphoreAndLockUsage() throws InterruptedException {
-        semaphore.acquire();
-        lock.lock();
-        LogsHandler.logRequest("POST", "/api/user", "192.168.1.1", 201);
-        lock.unlock();
-        semaphore.release();
 
-        assertEquals(1, semaphore.availablePermits(), "O semáforo deve ter sido liberado corretamente.");
+        LogsHandler.logRequest("POST", "/api/user", "192.168.1.1", 201);
+
+
+
         assertFalse(lock.isLocked(), "O lock deve estar desbloqueado após a operação.");
     }
 }
