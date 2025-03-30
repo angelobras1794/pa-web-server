@@ -1,3 +1,11 @@
+# This workflow will build a Java project with Maven, and cache/restore any dependencies to improve the workflow execution time
+# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-java-with-maven
+
+# This workflow uses actions that are not certified by GitHub.
+# They are provided by a third-party and are governed by
+# separate terms of service, privacy policy, and support
+# documentation.
+
 name: Java CI with Maven
 
 on:
@@ -10,10 +18,7 @@ on:
 
 jobs:
   build:
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ubuntu-latest
 
     steps:
     - name: Checkout code
@@ -28,13 +33,10 @@ jobs:
     - name: Cache Maven packages
       uses: actions/cache@v3
       with:
-        path: |
-          ~/.m2/repository
-          ~\AppData\Local\Maven\Cache
+        path: ~/.m2/repository
         key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
         restore-keys: |
           ${{ runner.os }}-maven-
-    
     - name: Install dependencies
       run: mvn install -DskipTests
 
@@ -50,11 +52,11 @@ jobs:
     - name: Upload code coverage report
       uses: actions/upload-artifact@v4
       with:
-        name: code-coverage-report-${{ runner.os }}
+        name: code-coverage-report
         path: target/site/jacoco
 
     - name: Upload Javadoc
       uses: actions/upload-artifact@v4
       with:
-        name: javadoc-${{ runner.os }}
+        name: javadoc
         path: target/site/apidocs
